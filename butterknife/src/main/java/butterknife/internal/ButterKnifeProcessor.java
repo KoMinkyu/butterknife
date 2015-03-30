@@ -21,7 +21,6 @@ import butterknife.ResourceDrawable;
 import butterknife.ResourceInt;
 import butterknife.ResourceString;
 import butterknife.UiThread;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;

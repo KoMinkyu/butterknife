@@ -6,14 +6,12 @@
 # http://benlimmer.com/2013/12/26/automatically-publish-javadoc-to-gh-pages-with-travis-ci/
 
 SLUG="JakeWharton/butterknife"
-JDK="oraclejdk8"
+JDK="oraclejdk7"
 BRANCH="master"
 
 set -e
 
-if [ "$TRAVIS_REPO_SLUG" != "$SLUG" ]; then
-  echo "Skipping snapshot deployment: wrong repository. Expected '$SLUG' but was '$TRAVIS_REPO_SLUG'."
-elif [ "$TRAVIS_JDK_VERSION" != "$JDK" ]; then
+if [ "$TRAVIS_JDK_VERSION" != "$JDK" ]; then
   echo "Skipping snapshot deployment: wrong JDK. Expected '$JDK' but was '$TRAVIS_JDK_VERSION'."
 elif [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
   echo "Skipping snapshot deployment: was pull request."
