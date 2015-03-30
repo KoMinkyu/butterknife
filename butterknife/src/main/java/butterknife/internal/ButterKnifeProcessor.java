@@ -20,6 +20,8 @@ import butterknife.ResourceDimen;
 import butterknife.ResourceDrawable;
 import butterknife.ResourceInt;
 import butterknife.ResourceString;
+import butterknife.UiThread;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -113,6 +115,8 @@ public final class ButterKnifeProcessor extends AbstractProcessor {
     types.add(ResourceDrawable.class.getCanonicalName());
     types.add(ResourceInt.class.getCanonicalName());
     types.add(ResourceString.class.getCanonicalName());
+
+    types.add(UiThread.class.getCanonicalName());
 
     return types;
   }
@@ -217,6 +221,14 @@ public final class ButterKnifeProcessor extends AbstractProcessor {
         parseResourceString(element, targetClassMap, erasedTargetNames);
       } catch (Exception e) {
         logParsingError(element, ResourceString.class, e);
+      }
+    }
+
+    for (Element element : env.getElementsAnnotatedWith(UiThread.class)) {
+      try {
+        parseUiThread(element, targetClassMap, erasedTargetNames);
+      } catch (Exception e) {
+        logParsingError(element, UiThread.class, e);
       }
     }
 
@@ -867,6 +879,33 @@ public final class ButterKnifeProcessor extends AbstractProcessor {
 
     // Add the type-erased version to the valid binding targets set.
     erasedTargetNames.add(enclosingElement.toString());
+  }
+
+  private void parseUiThread(Element element, Map<TypeElement, BindingClass> targetClassMap,
+    Set<String> erasedTargetNames) throws Exception {
+    boolean hasError = false;
+
+    if (!(element instanceof ExecutableElement) || element.getKind() != METHOD) {
+      error(element, "@%s annotation must be on a method.", UiThread.class.getSimpleName());
+      hasError = true;
+    }
+
+    hasError = isBindingInWrongPackage(UiThread.class, element);
+
+    if (hasError) {
+      return;
+    }
+
+    ExecutableElement executableElement = (ExecutableElement) element;
+    TypeElement enclosingElement = (TypeElement) element.getEnclosingElement();
+
+    UiThread annotation = element.getAnnotation(UiThread.class);
+    Method annotationValue = UiThread.class.getDeclaredMethod("delay");
+    if (annotationValue.getReturnType() != long.class) {
+      error(element, "%s annotation delay() type not long.", UiThread.class.getSimpleName());
+    }
+
+    processingEnv.getMessager().printMessage(ERROR, "HI", element);
   }
 
   private boolean isInterface(TypeMirror typeMirror) {
