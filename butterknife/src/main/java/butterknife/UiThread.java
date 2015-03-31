@@ -1,8 +1,6 @@
 package butterknife;
 
 
-import android.content.Context;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
