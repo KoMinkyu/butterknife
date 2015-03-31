@@ -1,25 +1,7 @@
 package butterknife.internal;
 
 import android.view.View;
-import butterknife.FindView;
-import butterknife.FindViews;
-import butterknife.OnCheckedChanged;
-import butterknife.OnClick;
-import butterknife.OnEditorAction;
-import butterknife.OnFocusChange;
-import butterknife.OnItemClick;
-import butterknife.OnItemLongClick;
-import butterknife.OnItemSelected;
-import butterknife.OnLongClick;
-import butterknife.OnPageChange;
-import butterknife.OnTextChanged;
-import butterknife.OnTouch;
-import butterknife.ResourceBool;
-import butterknife.ResourceColor;
-import butterknife.ResourceDimen;
-import butterknife.ResourceDrawable;
-import butterknife.ResourceInt;
-import butterknife.ResourceString;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -35,6 +17,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.ProcessingEnvironment;
@@ -54,6 +37,26 @@ import javax.lang.model.type.TypeVariable;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.JavaFileObject;
+
+import butterknife.FindView;
+import butterknife.FindViews;
+import butterknife.OnCheckedChanged;
+import butterknife.OnClick;
+import butterknife.OnEditorAction;
+import butterknife.OnFocusChange;
+import butterknife.OnItemClick;
+import butterknife.OnItemLongClick;
+import butterknife.OnItemSelected;
+import butterknife.OnLongClick;
+import butterknife.OnPageChange;
+import butterknife.OnTextChanged;
+import butterknife.OnTouch;
+import butterknife.ResourceBool;
+import butterknife.ResourceColor;
+import butterknife.ResourceDimen;
+import butterknife.ResourceDrawable;
+import butterknife.ResourceInt;
+import butterknife.ResourceString;
 
 import static javax.lang.model.element.ElementKind.CLASS;
 import static javax.lang.model.element.ElementKind.INTERFACE;
