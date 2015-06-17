@@ -19,6 +19,8 @@ final class BindingClass {
   private final Map<FieldCollectionViewBinding, int[]> collectionBindings =
       new LinkedHashMap<FieldCollectionViewBinding, int[]>();
   private final List<FieldResourceBinding> resourceBindings = new ArrayList<FieldResourceBinding>();
+  private final List<ThreadMethodBinding> threadBindings = new ArrayList<ThreadMethodBinding>();
+
   private final String classPackage;
   private final String className;
   private final String targetClass;
@@ -53,6 +55,10 @@ final class BindingClass {
     resourceBindings.add(binding);
   }
 
+  void addThreadMethod(ThreadMethodBinding binding) {
+    threadBindings.add(binding);
+  }
+
   void setParentViewBinder(String parentViewBinder) {
     this.parentViewBinder = parentViewBinder;
   }
@@ -79,6 +85,11 @@ final class BindingClass {
     builder.append("// Generated code from Butter Knife. Do not modify!\n");
     builder.append("package ").append(classPackage).append(";\n\n");
 
+    if (!threadBindings.isEmpty()) {
+      builder.append("import android.os.Handler;\n");
+      builder.append("import android.os.Looper;\n");
+      builder.append("import java.lang.Runnable;\n");
+    }
     if (!resourceBindings.isEmpty()) {
       builder.append("import android.content.res.Resources;\n");
     }

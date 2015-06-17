@@ -28,6 +28,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
@@ -36,6 +37,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
+import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
 import butterknife.FindView;
@@ -57,6 +59,7 @@ import butterknife.ResourceDimen;
 import butterknife.ResourceDrawable;
 import butterknife.ResourceInt;
 import butterknife.ResourceString;
+import butterknife.UiThread;
 
 import static javax.lang.model.element.ElementKind.CLASS;
 import static javax.lang.model.element.ElementKind.INTERFACE;
@@ -116,6 +119,8 @@ public final class ButterKnifeProcessor extends AbstractProcessor {
     types.add(ResourceDrawable.class.getCanonicalName());
     types.add(ResourceInt.class.getCanonicalName());
     types.add(ResourceString.class.getCanonicalName());
+
+    types.add(UiThread.class.getCanonicalName());
 
     return types;
   }
@@ -223,6 +228,14 @@ public final class ButterKnifeProcessor extends AbstractProcessor {
       }
     }
 
+    for (Element element : env.getElementsAnnotatedWith(UiThread.class)) {
+      try {
+        parseUiThread(element, targetClassMap, erasedTargetNames);
+      } catch (Exception e) {
+        logParsingError(element, UiThread.class, e);
+      }
+    }
+
     // Try to find a parent binder for each.
     for (Map.Entry<TypeElement, BindingClass> entry : targetClassMap.entrySet()) {
       String parentClassFqcn = findParentFqcn(entry.getKey(), erasedTargetNames);
@@ -232,6 +245,89 @@ public final class ButterKnifeProcessor extends AbstractProcessor {
     }
 
     return targetClassMap;
+  }
+
+  private void  parseUiThread(Element element, Map<TypeElement, BindingClass> targetClassMap,
+      Set<String> erasedTargetNames) throws Exception {
+    boolean hasError = false;
+
+    ExecutableElement executableElement = (ExecutableElement) element;
+    TypeElement enclosingElement = (TypeElement) element.getEnclosingElement();
+
+    TypeMirror elementType = element.asType();
+    if (!(element instanceof ExecutableElement) || element.getKind() != METHOD) {
+      error(element, "@s annotation must be on a method.", UiThread.class.getSimpleName());
+      hasError = true;
+    }
+
+    hasError = isBindingInWrongPackage(UiThread.class, element);
+
+    if (hasError) {
+      return;
+    }
+
+    UiThread annotation = element.getAnnotation(UiThread.class);
+
+    Method annotationValue = UiThread.class.getDeclaredMethod("delay");
+    if (annotationValue.getReturnType() != long.class) {
+      error(element, "%s annotation delay() type not long.", UiThread.class.getSimpleName());
+    }
+
+    processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "UiThread parsing", element);
+
+    long delay = annotation.delay();
+
+    BindingClass bindingClass = targetClassMap.get(enclosingElement);
+    if (bindingClass == null) {
+      bindingClass = getOrCreateTargetClass(targetClassMap, enclosingElement);
+    }
+
+    String name = element.getSimpleName().toString();
+
+    List<? extends VariableElement> methodParameters = executableElement.getParameters();
+
+
+    TypeMirror returnType = executableElement.getReturnType();
+    if (returnType instanceof TypeVariable) {
+      TypeVariable typeVariable = (TypeVariable) returnType;
+      returnType = typeVariable.getUpperBound();
+    }
+
+    if (!"void".equals(returnType.toString())) {
+      error(element, "@UiThread annotation method's type not void.");
+      hasError = true;
+    }
+
+    if (hasError) {
+      return;
+    }
+
+    ThreadMethodParameter[] parameters = ThreadMethodParameter.NONE;
+
+    if (!methodParameters.isEmpty()) {
+      parameters = new ThreadMethodParameter[methodParameters.size()];
+      BitSet methodParameterUsed = new BitSet(methodParameters.size());
+      List<? extends TypeParameterElement> parameterTypes = executableElement.getTypeParameters();
+
+      for (int i = 0; i < methodParameters.size(); i++) {
+        VariableElement methodParameter = methodParameters.get(i);
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "parameter:"
+          + methodParameter.toString(), element);
+        TypeMirror methodParameterType = methodParameter.asType();
+        if (methodParameterType instanceof TypeVariable) {
+          TypeVariable typeVariable = (TypeVariable) methodParameterType;
+          methodParameterType = typeVariable.getUpperBound();
+        }
+
+        parameters[i] = new ThreadMethodParameter(methodParameterType.toString(),
+          methodParameter.getSimpleName().toString());
+      }
+    }
+
+    ThreadMethodBinding binding = new ThreadMethodBinding(name, Arrays.asList(parameters));
+    bindingClass.addThreadMethod(binding);
+
+    erasedTargetNames.add(enclosingElement.toString());
   }
 
   private void logParsingError(Element element, Class<? extends Annotation> annotation,
@@ -813,7 +909,7 @@ public final class ButterKnifeProcessor extends AbstractProcessor {
             continue;
           }
           if (isSubtypeOfType(methodParameterType, parameterTypes[j])
-              || isInterface(methodParameterType)) {
+            || isInterface(methodParameterType)) {
             parameters[i] = new Parameter(j, methodParameterType.toString());
             methodParameterUsed.set(j);
             break;
@@ -836,9 +932,9 @@ public final class ButterKnifeProcessor extends AbstractProcessor {
                 .append(methodParameters.get(j).asType().toString())
                 .append("\n    ");
             if (parameter == null) {
-              builder.append("did not match any listener parameters");
+              builder.append("did not match any method parameters");
             } else {
-              builder.append("matched listener parameter #")
+              builder.append("matched method parameter #")
                   .append(parameter.getListenerPosition() + 1)
                   .append(": ")
                   .append(parameter.getType());
